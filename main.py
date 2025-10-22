@@ -652,4 +652,4 @@ elif page == "📈 Distribution Visualization":
         st.markdown("#### 🎯 Select Distributions to Fit")
         dist_options = st.multiselect("Distributions", 
                                      ["Normal", "Exponential", "Gamma", "Uniform"],
-                                     default=
+                                     default=["Normal", "Exponential"])
