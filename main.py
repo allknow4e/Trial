@@ -1,830 +1,552 @@
-# import streamlit as st
-# import pandas as pd
-# import numpy as np
-# import plotly.graph_objects as go
-# import plotly.express as px
-# from scipy import stats
-# from datetime import datetime, timedelta
-# import io
-
-# # Set page config
-# st.set_page_config(page_title="Continuous Distribution Analysis", layout="wide", page_icon="📊")
-
-# # Custom CSS
-# st.markdown("""
-# <style>
-#     .main-header {
-#         font-size: 2.5rem;
-#         color: #1f77b4;
-#         text-align: center;
-#         margin-bottom: 2rem;
-#     }
-#     .sub-header {
-#         font-size: 1.8rem;
-#         color: #ff7f0e;
-#         margin-top: 2rem;
-#         margin-bottom: 1rem;
-#     }
-#     .info-box {
-#         background-color: #f0f2f6;
-#         padding: 1rem;
-#         border-radius: 0.5rem;
-#         margin: 1rem 0;
-#     }
-# </style>
-# """, unsafe_allow_html=True)
-
-# # Sidebar navigation
-# st.sidebar.title("📊 Navigation")
-# page = st.sidebar.radio("Select Page", [
-#     "🏠 Home",
-#     "📥 Data Collection",
-#     "📊 Distribution Parameters",
-#     "📈 Distribution Visualization",
-#     "📉 Standard Distributions"
-# ])
-
-# # ============================================
-# # DATA GENERATION FUNCTIONS
-# # ============================================
-
-# def generate_commodity_data():
-#     """Generate realistic commodity price data"""
-#     np.random.seed(42)
-#     countries = ['India', 'USA', 'UK', 'Germany', 'France', 'Japan', 'China', 
-#                  'Brazil', 'Australia', 'Canada', 'South Africa']
-#     commodities = ['Petrol', 'Diesel', 'Gold', 'Silver']
-    
-#     # Base prices (in local currency units)
-#     base_prices = {
-#         'Petrol': {'India': 95, 'USA': 1.2, 'UK': 1.5, 'Germany': 1.6, 'France': 1.5,
-#                    'Japan': 150, 'China': 7.5, 'Brazil': 6.5, 'Australia': 1.7, 
-#                    'Canada': 1.4, 'South Africa': 20},
-#         'Diesel': {'India': 85, 'USA': 1.1, 'UK': 1.4, 'Germany': 1.4, 'France': 1.3,
-#                    'Japan': 130, 'China': 6.8, 'Brazil': 5.8, 'Australia': 1.6, 
-#                    'Canada': 1.3, 'South Africa': 18},
-#         'Gold': {'India': 5500, 'USA': 1800, 'UK': 1400, 'Germany': 1650, 'France': 1650,
-#                  'Japan': 7500, 'China': 380, 'Brazil': 320, 'Australia': 2500, 
-#                  'Canada': 2300, 'South Africa': 28000},
-#         'Silver': {'India': 70, 'USA': 23, 'UK': 18, 'Germany': 21, 'France': 21,
-#                    'Japan': 95, 'China': 5, 'Brazil': 4, 'Australia': 32, 
-#                    'Canada': 29, 'South Africa': 350}
-#     }
-    
-#     data = []
-#     start_year = datetime.now().year - 30
-    
-#     for year in range(start_year, start_year + 30):
-#         year_factor = (year - start_year) / 30
-#         for commodity in commodities:
-#             for country in countries:
-#                 base = base_prices[commodity][country]
-#                 trend = base * (1 + year_factor * np.random.uniform(0.5, 1.5))
-#                 seasonal = np.random.normal(0, base * 0.1)
-#                 price = max(0, trend + seasonal)
-                
-#                 data.append({
-#                     'Year': year,
-#                     'Country': country,
-#                     'Commodity': commodity,
-#                     'Price': round(price, 2)
-#                 })
-    
-#     return pd.DataFrame(data)
-
-# def generate_rainfall_data():
-#     """Generate realistic rainfall data for Indian states"""
-#     np.random.seed(43)
-#     states = ['Andhra Pradesh', 'Arunachal Pradesh', 'Assam', 'Bihar', 'Chhattisgarh',
-#               'Goa', 'Gujarat', 'Haryana', 'Himachal Pradesh', 'Jharkhand', 
-#               'Karnataka', 'Kerala', 'Madhya Pradesh', 'Maharashtra', 'Manipur',
-#               'Meghalaya', 'Mizoram', 'Nagaland', 'Odisha', 'Punjab', 'Rajasthan',
-#               'Sikkim', 'Tamil Nadu', 'Telangana', 'Tripura', 'Uttar Pradesh',
-#               'Uttarakhand', 'West Bengal']
-    
-#     seasons = ['Winter', 'Summer', 'Monsoon', 'Post-Monsoon']
-    
-#     # Average rainfall by state (mm)
-#     avg_rainfall = {
-#         'Meghalaya': 2500, 'Arunachal Pradesh': 2200, 'Assam': 2000, 'Kerala': 1800,
-#         'Karnataka': 1200, 'Maharashtra': 1100, 'Tamil Nadu': 950, 'West Bengal': 1500,
-#         'Odisha': 1400, 'Andhra Pradesh': 900, 'Telangana': 850, 'Gujarat': 700,
-#         'Madhya Pradesh': 900, 'Chhattisgarh': 1200, 'Jharkhand': 1100, 'Bihar': 1000,
-#         'Uttar Pradesh': 800, 'Himachal Pradesh': 1200, 'Uttarakhand': 1400,
-#         'Punjab': 600, 'Haryana': 500, 'Rajasthan': 400, 'Goa': 2500,
-#         'Manipur': 1800, 'Mizoram': 1900, 'Nagaland': 1700, 'Sikkim': 2000,
-#         'Tripura': 1600
-#     }
-    
-#     # Season factors
-#     season_factors = {
-#         'Winter': 0.15, 'Summer': 0.20, 'Monsoon': 0.50, 'Post-Monsoon': 0.15
-#     }
-    
-#     data = []
-#     start_year = datetime.now().year - 25
-    
-#     for year in range(start_year, start_year + 25):
-#         for state in states:
-#             avg = avg_rainfall[state]
-#             for season in seasons:
-#                 base_rainfall = avg * season_factors[season]
-#                 variation = np.random.gamma(shape=2, scale=base_rainfall/2)
-#                 rainfall = max(0, variation)
-                
-#                 data.append({
-#                     'Year': year,
-#                     'State': state,
-#                     'Season': season,
-#                     'Rainfall_mm': round(rainfall, 2)
-#                 })
-    
-#     return pd.DataFrame(data)
-
-# # ============================================
-# # DISTRIBUTION FUNCTIONS
-# # ============================================
-
-# def calculate_distribution_prob(dist_type, params, x_value):
-#     """Calculate probability for different distributions"""
-#     try:
-#         if dist_type == "Normal":
-#             mu, sigma = params['mu'], params['sigma']
-#             pdf = stats.norm.pdf(x_value, mu, sigma)
-#             cdf = stats.norm.cdf(x_value, mu, sigma)
-#             return pdf, cdf
-        
-#         elif dist_type == "Exponential":
-#             lambda_param = params['lambda']
-#             pdf = stats.expon.pdf(x_value, scale=1/lambda_param)
-#             cdf = stats.expon.cdf(x_value, scale=1/lambda_param)
-#             return pdf, cdf
-        
-#         elif dist_type == "Gamma":
-#             alpha, beta = params['alpha'], params['beta']
-#             pdf = stats.gamma.pdf(x_value, alpha, scale=1/beta)
-#             cdf = stats.gamma.cdf(x_value, alpha, scale=1/beta)
-#             return pdf, cdf
-        
-#         elif dist_type == "Uniform":
-#             a, b = params['a'], params['b']
-#             pdf = stats.uniform.pdf(x_value, a, b-a)
-#             cdf = stats.uniform.cdf(x_value, a, b-a)
-#             return pdf, cdf
-        
-#     except Exception as e:
-#         return None, None
-
-# def fit_distribution_to_data(data, dist_type):
-#     """Fit distribution to data and return parameters"""
-#     data = np.array(data).flatten()
-#     data = data[~np.isnan(data)]
-    
-#     if dist_type == "Normal":
-#         mu, sigma = stats.norm.fit(data)
-#         return {'mu': mu, 'sigma': sigma}
-    
-#     elif dist_type == "Exponential":
-#         loc, scale = stats.expon.fit(data)
-#         return {'lambda': 1/scale}
-    
-#     elif dist_type == "Gamma":
-#         alpha, loc, scale = stats.gamma.fit(data, floc=0)
-#         return {'alpha': alpha, 'beta': 1/scale}
-    
-#     elif dist_type == "Uniform":
-#         a, b = data.min(), data.max()
-#         return {'a': a, 'b': b}
-
-# def plot_distribution(dist_type, params, data=None, title="Distribution"):
-#     """Create distribution plot"""
-#     fig = go.Figure()
-    
-#     # Generate x range
-#     if dist_type == "Normal":
-#         mu, sigma = params['mu'], params['sigma']
-#         x = np.linspace(mu - 4*sigma, mu + 4*sigma, 1000)
-#         y_pdf = stats.norm.pdf(x, mu, sigma)
-#         y_cdf = stats.norm.cdf(x, mu, sigma)
-        
-#     elif dist_type == "Exponential":
-#         lambda_param = params['lambda']
-#         x = np.linspace(0, 5/lambda_param, 1000)
-#         y_pdf = stats.expon.pdf(x, scale=1/lambda_param)
-#         y_cdf = stats.expon.cdf(x, scale=1/lambda_param)
-        
-#     elif dist_type == "Gamma":
-#         alpha, beta = params['alpha'], params['beta']
-#         x = np.linspace(0, (alpha + 3*np.sqrt(alpha))/beta, 1000)
-#         y_pdf = stats.gamma.pdf(x, alpha, scale=1/beta)
-#         y_cdf = stats.gamma.cdf(x, alpha, scale=1/beta)
-        
-#     elif dist_type == "Uniform":
-#         a, b = params['a'], params['b']
-#         x = np.linspace(a - 0.1*(b-a), b + 0.1*(b-a), 1000)
-#         y_pdf = stats.uniform.pdf(x, a, b-a)
-#         y_cdf = stats.uniform.cdf(x, a, b-a)
-    
-#     # Add PDF
-#     fig.add_trace(go.Scatter(x=x, y=y_pdf, name='PDF', line=dict(color='blue', width=2)))
-    
-#     # Add CDF
-#     fig.add_trace(go.Scatter(x=x, y=y_cdf, name='CDF', line=dict(color='red', width=2)))
-    
-#     # Add histogram if data provided
-#     if data is not None:
-#         fig.add_trace(go.Histogram(x=data, name='Data', opacity=0.5, 
-#                                     histnorm='probability density', nbinsx=30))
-    
-#     fig.update_layout(
-#         title=title,
-#         xaxis_title='Value',
-#         yaxis_title='Probability',
-#         hovermode='x unified',
-#         height=500
-#     )
-    
-#     return fig
-
-# # ============================================
-# # PAGE: HOME
-# # ============================================
-
-# if page == "🏠 Home":
-#     st.markdown('<h1 class="main-header">📊 Continuous Distribution Analysis System</h1>', unsafe_allow_html=True)
-    
-#     st.markdown("""
-#     ## Welcome to the Continuous Distribution Analysis Application
-    
-#     This comprehensive application provides tools for:
-    
-#     ### 📥 Data Collection
-#     - **Commodity Prices**: Petrol, Diesel, Gold, Silver prices across 11 countries (30 years)
-#     - **Rainfall Data**: Seasonal rainfall data for all Indian states (25 years)
-    
-#     ### 📊 Distribution Analysis
-#     - Fit continuous distributions to collected data
-#     - Calculate probability values from distribution parameters
-#     - Visualize distribution characteristics
-    
-#     ### 📈 Supported Distributions
-#     1. **Normal Distribution** - Bell-shaped, symmetric
-#     2. **Exponential Distribution** - Memoryless property
-#     3. **Gamma Distribution** - Flexible shape parameter
-#     4. **Uniform Distribution** - Equal probability
-#     5. **Standard Distributions** - Normalized versions
-    
-#     ### 🎯 Features
-#     - Interactive parameter input
-#     - Real-time probability calculations
-#     - Advanced visualizations with Plotly
-#     - PDF and CDF analysis
-#     - Statistical summaries
-    
-#     ---
-    
-#     **👈 Use the sidebar to navigate between pages**
-#     """)
-    
-#     col1, col2, col3 = st.columns(3)
-#     with col1:
-#         st.info("📥 **30 Years** of Commodity Data")
-#     with col2:
-#         st.info("🌧️ **25 Years** of Rainfall Data")
-#     with col3:
-#         st.info("📊 **5 Distribution** Types")
-
-# # ============================================
-# # PAGE: DATA COLLECTION
-# # ============================================
-
-# elif page == "📥 Data Collection":
-#     st.markdown('<h1 class="main-header">📥 Data Collection</h1>', unsafe_allow_html=True)
-    
-#     data_type = st.selectbox("Select Dataset", ["Commodity Prices", "Rainfall Data"])
-    
-#     if data_type == "Commodity Prices":
-#         st.markdown("### 💰 Commodity Price Data (30 Years)")
-#         st.markdown("""
-#         **Data Includes:**
-#         - **Commodities**: Petrol, Diesel, Gold, Silver
-#         - **Countries**: India, USA, UK, Germany, France, Japan, China, Brazil, Australia, Canada, South Africa
-#         - **Period**: Last 30 years
-#         - **Prices**: In local currency units
-#         """)
-        
-#         if st.button("🔄 Generate Commodity Data"):
-#             with st.spinner("Generating data..."):
-#                 df = generate_commodity_data()
-#                 st.session_state['commodity_data'] = df
-#                 st.success("✅ Data generated successfully!")
-        
-#         if 'commodity_data' in st.session_state:
-#             df = st.session_state['commodity_data']
-            
-#             st.markdown("#### 📊 Data Overview")
-#             col1, col2, col3, col4 = st.columns(4)
-#             col1.metric("Total Records", len(df))
-#             col2.metric("Countries", df['Country'].nunique())
-#             col3.metric("Commodities", df['Commodity'].nunique())
-#             col4.metric("Years", df['Year'].nunique())
-            
-#             # Filters
-#             st.markdown("#### 🔍 Filters")
-#             col1, col2, col3 = st.columns(3)
-#             with col1:
-#                 selected_commodity = st.multiselect("Commodity", df['Commodity'].unique(), 
-#                                                     default=df['Commodity'].unique())
-#             with col2:
-#                 selected_country = st.multiselect("Country", df['Country'].unique(), 
-#                                                  default=df['Country'].unique()[:3])
-#             with col3:
-#                 year_range = st.slider("Year Range", 
-#                                       int(df['Year'].min()), 
-#                                       int(df['Year'].max()),
-#                                       (int(df['Year'].min()), int(df['Year'].max())))
-            
-#             # Filter data
-#             filtered_df = df[
-#                 (df['Commodity'].isin(selected_commodity)) &
-#                 (df['Country'].isin(selected_country)) &
-#                 (df['Year'] >= year_range[0]) &
-#                 (df['Year'] <= year_range[1])
-#             ]
-            
-#             # Display data
-#             st.markdown("#### 📋 Filtered Data")
-#             st.dataframe(filtered_df, use_container_width=True, height=300)
-            
-#             # Visualization
-#             st.markdown("#### 📈 Price Trends")
-#             fig = px.line(filtered_df, x='Year', y='Price', color='Country', 
-#                          facet_col='Commodity', facet_col_wrap=2,
-#                          title='Commodity Price Trends Over Time')
-#             st.plotly_chart(fig, use_container_width=True)
-            
-#             # Statistics
-#             st.markdown("#### 📊 Statistical Summary")
-#             st.dataframe(filtered_df.groupby('Commodity')['Price'].describe(), 
-#                         use_container_width=True)
-            
-#             # Download
-#             csv = filtered_df.to_csv(index=False)
-#             st.download_button("📥 Download CSV", csv, "commodity_data.csv", "text/csv")
-    
-#     else:  # Rainfall Data
-#         st.markdown("### 🌧️ Rainfall Data (25 Years)")
-#         st.markdown("""
-#         **Data Includes:**
-#         - **States**: All 28 Indian states
-#         - **Seasons**: Winter, Summer, Monsoon, Post-Monsoon
-#         - **Period**: Last 25 years
-#         - **Measurement**: Rainfall in millimeters (mm)
-#         """)
-        
-#         if st.button("🔄 Generate Rainfall Data"):
-#             with st.spinner("Generating data..."):
-#                 df = generate_rainfall_data()
-#                 st.session_state['rainfall_data'] = df
-#                 st.success("✅ Data generated successfully!")
-        
-#         if 'rainfall_data' in st.session_state:
-#             df = st.session_state['rainfall_data']
-            
-#             st.markdown("#### 📊 Data Overview")
-#             col1, col2, col3, col4 = st.columns(4)
-#             col1.metric("Total Records", len(df))
-#             col2.metric("States", df['State'].nunique())
-#             col3.metric("Seasons", df['Season'].nunique())
-#             col4.metric("Years", df['Year'].nunique())
-            
-#             # Filters
-#             st.markdown("#### 🔍 Filters")
-#             col1, col2, col3 = st.columns(3)
-#             with col1:
-#                 selected_state = st.multiselect("State", df['State'].unique(), 
-#                                                default=df['State'].unique()[:5])
-#             with col2:
-#                 selected_season = st.multiselect("Season", df['Season'].unique(), 
-#                                                 default=df['Season'].unique())
-#             with col3:
-#                 year_range = st.slider("Year Range", 
-#                                       int(df['Year'].min()), 
-#                                       int(df['Year'].max()),
-#                                       (int(df['Year'].min()), int(df['Year'].max())))
-            
-#             # Filter data
-#             filtered_df = df[
-#                 (df['State'].isin(selected_state)) &
-#                 (df['Season'].isin(selected_season)) &
-#                 (df['Year'] >= year_range[0]) &
-#                 (df['Year'] <= year_range[1])
-#             ]
-            
-#             # Display data
-#             st.markdown("#### 📋 Filtered Data")
-#             st.dataframe(filtered_df, use_container_width=True, height=300)
-            
-#             # Visualization
-#             st.markdown("#### 📈 Rainfall Patterns")
-#             fig = px.line(filtered_df, x='Year', y='Rainfall_mm', color='State', 
-#                          facet_col='Season', facet_col_wrap=2,
-#                          title='Rainfall Patterns Across Seasons')
-#             st.plotly_chart(fig, use_container_width=True)
-            
-#             # Box plot
-#             st.markdown("#### 📊 Seasonal Distribution by State")
-#             fig2 = px.box(filtered_df, x='Season', y='Rainfall_mm', color='State',
-#                          title='Rainfall Distribution by Season')
-#             st.plotly_chart(fig2, use_container_width=True)
-            
-#             # Statistics
-#             st.markdown("#### 📊 Statistical Summary")
-#             st.dataframe(filtered_df.groupby(['State', 'Season'])['Rainfall_mm'].describe(), 
-#                         use_container_width=True)
-            
-#             # Download
-#             csv = filtered_df.to_csv(index=False)
-#             st.download_button("📥 Download CSV", csv, "rainfall_data.csv", "text/csv")
-
-# # ============================================
-# # PAGE: DISTRIBUTION PARAMETERS
-# # ============================================
-
-# elif page == "📊 Distribution Parameters":
-#     st.markdown('<h1 class="main-header">📊 Distribution Parameters & Probability Calculator</h1>', 
-#                 unsafe_allow_html=True)
-    
-#     st.markdown("""
-#     Enter distribution parameters to calculate probability values (PDF and CDF) for specific data points.
-#     """)
-    
-#     # Select distribution type
-#     dist_type = st.selectbox("Select Distribution", 
-#                             ["Normal", "Exponential", "Gamma", "Uniform"])
-    
-#     col1, col2 = st.columns(2)
-    
-#     with col1:
-#         st.markdown("### 🎛️ Distribution Parameters")
-        
-#         params = {}
-        
-#         if dist_type == "Normal":
-#             st.markdown("**Normal Distribution: N(μ, σ²)**")
-#             params['mu'] = st.number_input("Mean (μ)", value=0.0, step=0.1)
-#             params['sigma'] = st.number_input("Standard Deviation (σ)", value=1.0, 
-#                                              min_value=0.01, step=0.1)
-#             st.latex(r"f(x) = \frac{1}{\sigma\sqrt{2\pi}} e^{-\frac{(x-\mu)^2}{2\sigma^2}}")
-        
-#         elif dist_type == "Exponential":
-#             st.markdown("**Exponential Distribution: Exp(λ)**")
-#             params['lambda'] = st.number_input("Rate Parameter (λ)", value=1.0, 
-#                                               min_value=0.01, step=0.1)
-#             st.latex(r"f(x) = \lambda e^{-\lambda x}, \quad x \geq 0")
-        
-#         elif dist_type == "Gamma":
-#             st.markdown("**Gamma Distribution: Γ(α, β)**")
-#             params['alpha'] = st.number_input("Shape Parameter (α)", value=2.0, 
-#                                              min_value=0.01, step=0.1)
-#             params['beta'] = st.number_input("Rate Parameter (β)", value=1.0, 
-#                                             min_value=0.01, step=0.1)
-#             st.latex(r"f(x) = \frac{\beta^\alpha}{\Gamma(\alpha)} x^{\alpha-1} e^{-\beta x}")
-        
-#         elif dist_type == "Uniform":
-#             st.markdown("**Uniform Distribution: U(a, b)**")
-#             params['a'] = st.number_input("Lower Bound (a)", value=0.0, step=0.1)
-#             params['b'] = st.number_input("Upper Bound (b)", value=1.0, step=0.1)
-#             if params['b'] <= params['a']:
-#                 st.error("Upper bound must be greater than lower bound!")
-#             st.latex(r"f(x) = \frac{1}{b-a}, \quad a \leq x \leq b")
-        
-#         x_value = st.number_input("Enter X value for probability calculation", 
-#                                  value=0.0, step=0.1)
-        
-#         calculate_btn = st.button("🔢 Calculate Probabilities", type="primary")
-    
-#     with col2:
-#         st.markdown("### 📊 Probability Results")
-        
-#         if calculate_btn:
-#             pdf, cdf = calculate_distribution_prob(dist_type, params, x_value)
-            
-#             if pdf is not None and cdf is not None:
-#                 st.success("✅ Calculation Complete!")
-                
-#                 # Display results
-#                 metric_col1, metric_col2 = st.columns(2)
-#                 with metric_col1:
-#                     st.metric("PDF f(x)", f"{pdf:.6f}")
-#                 with metric_col2:
-#                     st.metric("CDF F(x)", f"{cdf:.6f}")
-                
-#                 # Additional information
-#                 st.markdown("---")
-#                 st.markdown("#### 📝 Interpretation")
-#                 st.info(f"""
-#                 - **PDF (Probability Density Function)**: {pdf:.6f}
-#                   - Indicates the relative likelihood of the random variable at x = {x_value}
-                
-#                 - **CDF (Cumulative Distribution Function)**: {cdf:.6f}
-#                   - Probability that X ≤ {x_value}
-#                   - Probability that X > {x_value} = {1-cdf:.6f}
-#                 """)
-                
-#                 # Theoretical properties
-#                 st.markdown("#### 📐 Distribution Properties")
-#                 if dist_type == "Normal":
-#                     mean = params['mu']
-#                     variance = params['sigma']**2
-#                     st.write(f"- Mean: {mean}")
-#                     st.write(f"- Variance: {variance:.4f}")
-#                     st.write(f"- Std Dev: {params['sigma']}")
-                
-#                 elif dist_type == "Exponential":
-#                     mean = 1/params['lambda']
-#                     variance = 1/(params['lambda']**2)
-#                     st.write(f"- Mean: {mean:.4f}")
-#                     st.write(f"- Variance: {variance:.4f}")
-#                     st.write(f"- Std Dev: {np.sqrt(variance):.4f}")
-                
-#                 elif dist_type == "Gamma":
-#                     mean = params['alpha']/params['beta']
-#                     variance = params['alpha']/(params['beta']**2)
-#                     st.write(f"- Mean: {mean:.4f}")
-#                     st.write(f"- Variance: {variance:.4f}")
-#                     st.write(f"- Std Dev: {np.sqrt(variance):.4f}")
-                
-#                 elif dist_type == "Uniform":
-#                     mean = (params['a'] + params['b'])/2
-#                     variance = ((params['b'] - params['a'])**2)/12
-#                     st.write(f"- Mean: {mean:.4f}")
-#                     st.write(f"- Variance: {variance:.4f}")
-#                     st.write(f"- Std Dev: {np.sqrt(variance):.4f}")
-#             else:
-#                 st.error("❌ Error in calculation. Please check parameters.")
-    
-#     # Visualization
-#     st.markdown("---")
-#     st.markdown("### 📈 Distribution Visualization")
-    
-#     fig = plot_distribution(dist_type, params, title=f"{dist_type} Distribution")
-    
-#     # Add vertical line at x_value
-#     if calculate_btn and pdf is not None:
-#         fig.add_vline(x=x_value, line_dash="dash", line_color="green", 
-#                      annotation_text=f"x = {x_value}")
-    
-#     st.plotly_chart(fig, use_container_width=True)
-
-# # ============================================
-# # PAGE: DISTRIBUTION VISUALIZATION
-# # ============================================
-
-# elif page == "📈 Distribution Visualization":
-#     st.markdown('<h1 class="main-header">📈 Distribution Visualization with Data Fitting</h1>', 
-#                 unsafe_allow_html=True)
-    
-#     st.markdown("""
-#     Fit continuous distributions to your collected data and visualize the results.
-#     """)
-    
-#     # Select dataset
-#     dataset = st.selectbox("Select Dataset", ["Commodity Prices", "Rainfall Data"])
-    
-#     if dataset == "Commodity Prices":
-#         if 'commodity_data' not in st.session_state:
-#             st.warning("⚠️ Please generate commodity data first from the Data Collection page.")
-#             if st.button("🔄 Generate Data Now"):
-#                 with st.spinner("Generating data..."):
-#                     df = generate_commodity_data()
-#                     st.session_state['commodity_data'] = df
-#                     st.success("✅ Data generated!")
-#                     st.rerun()
-#         else:
-#             df = st.session_state['commodity_data']
-            
-#             col1, col2 = st.columns(2)
-#             with col1:
-#                 commodity = st.selectbox("Select Commodity", df['Commodity'].unique())
-#             with col2:
-#                 country = st.selectbox("Select Country", df['Country'].unique())
-            
-#             # Filter data
-#             data = df[(df['Commodity'] == commodity) & (df['Country'] == country)]['Price'].values
-            
-#             st.markdown(f"### 📊 Analyzing: {commodity} prices in {country}")
-            
-#     else:  # Rainfall Data
-#         if 'rainfall_data' not in st.session_state:
-#             st.warning("⚠️ Please generate rainfall data first from the Data Collection page.")
-#             if st.button("🔄 Generate Data Now"):
-#                 with st.spinner("Generating data..."):
-#                     df = generate_rainfall_data()
-#                     st.session_state['rainfall_data'] = df
-#                     st.success("✅ Data generated!")
-#                     st.rerun()
-#         else:
-#             df = st.session_state['rainfall_data']
-            
-#             col1, col2 = st.columns(2)
-#             with col1:
-#                 state = st.selectbox("Select State", df['State'].unique())
-#             with col2:
-#                 season = st.selectbox("Select Season", df['Season'].unique())
-            
-#             # Filter data
-#             data = df[(df['State'] == state) & (df['Season'] == season)]['Rainfall_mm'].values
-            
-#             st.markdown(f"### 📊 Analyzing: {season} rainfall in {state}")
-    
-#     if len(data) > 0:
-#         # Data statistics
-#         st.markdown("#### 📊 Data Statistics")
-#         col1, col2, col3, col4, col5 = st.columns(5)
-#         col1.metric("Count", len(data))
-#         col2.metric("Mean", f"{np.mean(data):.2f}")
-#         col3.metric("Std Dev", f"{np.std(data):.2f}")
-#         col4.metric("Min", f"{np.min(data):.2f}")
-#         col5.metric("Max", f"{np.max(data):.2f}")
-        
-#         # Select distributions to fit
-#         st.markdown("#### 🎯 Select Distributions to Fit")
-#         dist_options = st.multiselect("Distributions", 
-#                                      ["Normal", "Exponential", "Gamma", "Uniform"],
-#                                      default=["Normal", "Exponential"])
-
-
-
-
 import streamlit as st
-import pandas as pd
 import numpy as np
-import scipy.stats as stats
-import matplotlib.pyplot as plt
+import pandas as pd
+from scipy import stats
+import plotly.graph_objects as go
+from plotly.subplots import make_subplots
 
-# Streamlit page setup
-st.set_page_config(page_title="Continuous Distributions App", layout="wide")
+# Set page configuration first
+st.set_page_config(
+    page_title="Global Commodity Prices Analysis",
+    page_icon="⛽",
+    layout="wide"
+)
 
-# Sidebar navigation
+# Import matplotlib with error handling
+try:
+    import matplotlib.pyplot as plt
+    matplotlib_available = True
+except ImportError:
+    matplotlib_available = False
+    st.warning("Matplotlib is not available. Some visualizations may be limited.")
+
+# Import seaborn with error handling
+try:
+    import seaborn as sns
+    sns_available = True
+except ImportError:
+    sns_available = False
+    st.warning("Seaborn is not available. Some visualizations may be limited.")
+
+# Title and description
+st.title("⛽ Global Commodity Prices Analysis (1994-2023)")
+st.markdown("""
+Analysis of Petrol, Diesel, Gold, and Silver prices across India and 10 other countries over 30 years.
+Explore continuous distributions and price patterns interactively!
+""")
+
+# Generate realistic commodity price data
+@st.cache_data
+def generate_commodity_data():
+    countries = [
+        'India', 'USA', 'China', 'Germany', 'Japan',
+        'UK', 'Brazil', 'Russia', 'Australia', 'UAE', 'Canada'
+    ]
+    
+    commodities = ['Petrol', 'Diesel', 'Gold', 'Silver']
+    
+    # Base prices in USD (1994)
+    base_prices = {
+        'Petrol': 0.3,    # USD per liter
+        'Diesel': 0.25,   # USD per liter
+        'Gold': 384.0,    # USD per ounce
+        'Silver': 5.3     # USD per ounce
+    }
+    
+    # Country-specific multipliers (cost factors)
+    country_multipliers = {
+        'India': {'Petrol': 1.2, 'Diesel': 1.1, 'Gold': 1.05, 'Silver': 1.08},
+        'USA': {'Petrol': 1.0, 'Diesel': 0.9, 'Gold': 1.0, 'Silver': 1.0},
+        'China': {'Petrol': 1.1, 'Diesel': 1.0, 'Gold': 1.02, 'Silver': 1.03},
+        'Germany': {'Petrol': 1.4, 'Diesel': 1.3, 'Gold': 1.01, 'Silver': 1.02},
+        'Japan': {'Petrol': 1.3, 'Diesel': 1.2, 'Gold': 1.03, 'Silver': 1.04},
+        'UK': {'Petrol': 1.5, 'Diesel': 1.4, 'Gold': 1.01, 'Silver': 1.02},
+        'Brazil': {'Petrol': 1.15, 'Diesel': 1.05, 'Gold': 1.06, 'Silver': 1.07},
+        'Russia': {'Petrol': 0.8, 'Diesel': 0.7, 'Gold': 1.04, 'Silver': 1.05},
+        'Australia': {'Petrol': 1.1, 'Diesel': 1.0, 'Gold': 1.0, 'Silver': 1.01},
+        'UAE': {'Petrol': 0.5, 'Diesel': 0.4, 'Gold': 0.98, 'Silver': 0.99},
+        'Canada': {'Petrol': 0.9, 'Diesel': 0.8, 'Gold': 1.01, 'Silver': 1.02}
+    }
+    
+    # Generate monthly data from 1994 to 2023
+    dates = pd.date_range('1994-01-01', '2023-12-31', freq='M')
+    data = []
+    
+    np.random.seed(42)
+    
+    for country in countries:
+        for commodity in commodities:
+            base_price = base_prices[commodity] * country_multipliers[country][commodity]
+            price = base_price
+            
+            for date in dates:
+                # Add realistic price fluctuations
+                if commodity in ['Petrol', 'Diesel']:
+                    monthly_change = np.random.normal(0.002, 0.08)
+                else:
+                    monthly_change = np.random.normal(0.003, 0.05)
+                
+                price = max(0.1, price * (1 + monthly_change))
+                
+                # Add seasonal effects for fuels
+                if commodity in ['Petrol', 'Diesel']:
+                    seasonal_effect = 0.05 * np.sin(2 * np.pi * date.month / 12)
+                    price = price * (1 + seasonal_effect)
+                
+                # Convert to local currencies (simplified)
+                if country == 'India':
+                    local_price = price * 75
+                    currency = 'INR'
+                elif country == 'Japan':
+                    local_price = price * 110
+                    currency = 'JPY'
+                elif country == 'UK':
+                    local_price = price * 0.75
+                    currency = 'GBP'
+                else:
+                    local_price = price
+                    currency = 'USD'
+                
+                data.append({
+                    'Country': country,
+                    'Commodity': commodity,
+                    'Date': date,
+                    'Year': date.year,
+                    'Month': date.month,
+                    'Price_USD': round(price, 3),
+                    'Price_Local': round(local_price, 2),
+                    'Currency': currency
+                })
+    
+    return pd.DataFrame(data)
+
+# Initialize session state for data
+if 'commodity_data' not in st.session_state:
+    st.session_state.commodity_data = generate_commodity_data()
+
+commodity_data = st.session_state.commodity_data
+
+# Sidebar for navigation
 st.sidebar.title("Navigation")
-page = st.sidebar.radio("Go to", [
-    "🏠 Home",
-    "📂 Data Collection & Probability Calculator",
-    "📈 Continuous Distributions Visualization",
-    "📉 Standard Distributions"
-])
+app_mode = st.sidebar.selectbox(
+    "Choose Analysis Mode",
+    ["Data Overview", "Price Trends", "Distribution Calculator", 
+     "Distribution Visualization", "Country Comparison", "Standard Distributions"]
+)
 
-# ----------------------------- PAGE 1: HOME -----------------------------
-if page == "🏠 Home":
-    st.title("📊 Continuous Distribution Analysis App")
-    st.markdown("""
-    This app allows you to:
-    - Upload real-world data (like petrol/diesel prices, rainfall, gold/silver rates, etc.)
-    - Fit continuous distributions and calculate probabilities
-    - Visualize various distributions and their standard versions
+# Page 1: Data Overview
+if app_mode == "Data Overview":
+    st.header("📊 Global Commodity Prices Dataset (1994-2023)")
     
-    **Examples of data you can collect:**
-    - Petrol, Diesel, Gold, Silver prices in India and 10 other countries (30 years)
-    - Rainfall (season-wise) for all Indian states (25 years)
+    col1, col2 = st.columns([2, 1])
     
-    Each student should collect unique data for marks. 📈
-    """)
+    with col1:
+        st.subheader("Dataset Preview")
+        st.dataframe(commodity_data.head(10), use_container_width=True)
+        
+        st.subheader("Data Summary by Country")
+        try:
+            summary_stats = commodity_data.groupby(['Country', 'Commodity']).agg({
+                'Price_USD': ['mean', 'std', 'min', 'max']
+            }).round(3)
+            st.dataframe(summary_stats, use_container_width=True)
+        except Exception as e:
+            st.error(f"Error generating summary: {e}")
+    
+    with col2:
+        st.subheader("Dataset Information")
+        st.write(f"**Total Records:** {len(commodity_data):,}")
+        st.write(f"**Number of Countries:** {commodity_data['Country'].nunique()}")
+        st.write(f"**Commodities:** {', '.join(commodity_data['Commodity'].unique())}")
+        st.write(f"**Time Period:** {commodity_data['Year'].min()} - {commodity_data['Year'].max()}")
+        
+        st.subheader("Latest Prices (Dec 2023)")
+        try:
+            latest_prices = commodity_data[commodity_data['Date'] == commodity_data['Date'].max()]
+            pivot_latest = latest_prices.pivot_table(
+                index='Country', 
+                columns='Commodity', 
+                values='Price_USD'
+            ).round(2)
+            st.dataframe(pivot_latest, use_container_width=True)
+        except Exception as e:
+            st.error(f"Error displaying latest prices: {e}")
 
-# ----------------------------- PAGE 2: DATA COLLECTION -----------------------------
-elif page == "📂 Data Collection & Probability Calculator":
-    st.title("📂 Data Collection & Probability Calculator")
+# Page 2: Price Trends
+elif app_mode == "Price Trends":
+    st.header("📈 Commodity Price Trends Analysis")
+    
+    col1, col2 = st.columns([1, 3])
+    
+    with col1:
+        selected_countries = st.multiselect(
+            "Select Countries:",
+            options=commodity_data['Country'].unique(),
+            default=['India', 'USA', 'Germany']
+        )
+        
+        selected_commodities = st.multiselect(
+            "Select Commodities:",
+            options=commodity_data['Commodity'].unique(),
+            default=['Petrol', 'Gold']
+        )
+        
+        aggregation = st.radio(
+            "Time Aggregation:",
+            ["Yearly", "Monthly"]
+        )
+        
+        show_log_scale = st.checkbox("Logarithmic Scale")
+    
+    with col2:
+        if selected_countries and selected_commodities:
+            try:
+                filtered_data = commodity_data[
+                    (commodity_data['Country'].isin(selected_countries)) &
+                    (commodity_data['Commodity'].isin(selected_commodities))
+                ]
+                
+                if aggregation == "Yearly":
+                    trend_data = filtered_data.groupby(['Year', 'Country', 'Commodity'])['Price_USD'].mean().reset_index()
+                    x_col = 'Year'
+                else:
+                    trend_data = filtered_data
+                    x_col = 'Date'
+                
+                # Create interactive plot
+                fig = go.Figure()
+                
+                for country in selected_countries:
+                    for commodity in selected_commodities:
+                        country_commodity_data = trend_data[
+                            (trend_data['Country'] == country) & 
+                            (trend_data['Commodity'] == commodity)
+                        ]
+                        
+                        fig.add_trace(go.Scatter(
+                            x=country_commodity_data[x_col],
+                            y=country_commodity_data['Price_USD'],
+                            name=f"{country} - {commodity}",
+                            mode='lines',
+                            opacity=0.8
+                        ))
+                
+                fig.update_layout(
+                    title=f"{aggregation} Price Trends",
+                    xaxis_title="Time",
+                    yaxis_title="Price (USD)",
+                    height=500
+                )
+                
+                if show_log_scale:
+                    fig.update_yaxis(type="log")
+                    
+                st.plotly_chart(fig, use_container_width=True)
+                
+            except Exception as e:
+                st.error(f"Error generating trends: {e}")
 
-    uploaded = st.file_uploader("Upload your dataset (CSV file)", type=["csv"])
+# Page 3: Distribution Calculator
+elif app_mode == "Distribution Calculator":
+    st.header("🧮 Distribution Probability Calculator")
+    
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        distribution_type = st.selectbox(
+            "Select Distribution:",
+            ["Normal", "Exponential", "Gamma", "Uniform", "Lognormal"]
+        )
+        
+        if distribution_type == "Normal":
+            mu = st.slider("Mean (μ)", 0.0, 10.0, 2.0, 0.1)
+            sigma = st.slider("Standard Deviation (σ)", 0.1, 5.0, 1.0, 0.1)
+            
+        elif distribution_type == "Exponential":
+            lambda_param = st.slider("Rate (λ)", 0.1, 5.0, 1.0, 0.1)
+            
+        elif distribution_type == "Gamma":
+            alpha = st.slider("Shape (α)", 0.1, 10.0, 2.0, 0.1)
+            beta = st.slider("Rate (β)", 0.1, 5.0, 1.0, 0.1)
+            
+        elif distribution_type == "Uniform":
+            a = st.slider("Lower bound (a)", 0.0, 10.0, 0.0, 0.1)
+            b = st.slider("Upper bound (b)", 0.0, 10.0, 5.0, 0.1)
+            if b <= a:
+                st.error("b must be greater than a")
+                b = a + 0.1
+                
+        elif distribution_type == "Lognormal":
+            mu_ln = st.slider("Log Mean (μ)", -2.0, 2.0, 0.0, 0.1)
+            sigma_ln = st.slider("Log Std (σ)", 0.1, 2.0, 1.0, 0.1)
+        
+        st.subheader("Probability Calculation")
+        x_value = st.number_input("X value:", value=2.0, min_value=0.0)
+        prob_type = st.radio("Probability Type:", ["PDF", "CDF"])
+        
+        try:
+            if distribution_type == "Normal":
+                if prob_type == "PDF":
+                    result = stats.norm.pdf(x_value, mu, sigma)
+                else:
+                    result = stats.norm.cdf(x_value, mu, sigma)
+                    
+            elif distribution_type == "Exponential":
+                if prob_type == "PDF":
+                    result = stats.expon.pdf(x_value, scale=1/lambda_param)
+                else:
+                    result = stats.expon.cdf(x_value, scale=1/lambda_param)
+                    
+            elif distribution_type == "Gamma":
+                if prob_type == "PDF":
+                    result = stats.gamma.pdf(x_value, alpha, scale=1/beta)
+                else:
+                    result = stats.gamma.cdf(x_value, alpha, scale=1/beta)
+                    
+            elif distribution_type == "Uniform":
+                if prob_type == "PDF":
+                    result = stats.uniform.pdf(x_value, a, b-a)
+                else:
+                    result = stats.uniform.cdf(x_value, a, b-a)
+                    
+            elif distribution_type == "Lognormal":
+                if prob_type == "PDF":
+                    result = stats.lognorm.pdf(x_value, sigma_ln, scale=np.exp(mu_ln))
+                else:
+                    result = stats.lognorm.cdf(x_value, sigma_ln, scale=np.exp(mu_ln))
+        except Exception as e:
+            st.error(f"Error calculating probability: {e}")
+            result = 0.0
+    
+    with col2:
+        st.subheader("Probability Result")
+        st.metric(
+            label=f"{prob_type} Value at x = {x_value}",
+            value=f"{result:.6f}"
+        )
+        
+        try:
+            if distribution_type == "Normal":
+                x = np.linspace(mu - 4*sigma, mu + 4*sigma, 1000)
+                y_pdf = stats.norm.pdf(x, mu, sigma)
+                y_cdf = stats.norm.cdf(x, mu, sigma)
+            elif distribution_type == "Exponential":
+                x = np.linspace(0, 5/lambda_param, 1000)
+                y_pdf = stats.expon.pdf(x, scale=1/lambda_param)
+                y_cdf = stats.expon.cdf(x, scale=1/lambda_param)
+            elif distribution_type == "Gamma":
+                x = np.linspace(0, 3*alpha/beta, 1000)
+                y_pdf = stats.gamma.pdf(x, alpha, scale=1/beta)
+                y_cdf = stats.gamma.cdf(x, alpha, scale=1/beta)
+            elif distribution_type == "Uniform":
+                x = np.linspace(a-1, b+1, 1000)
+                y_pdf = stats.uniform.pdf(x, a, b-a)
+                y_cdf = stats.uniform.cdf(x, a, b-a)
+            elif distribution_type == "Lognormal":
+                x = np.linspace(0.01, stats.lognorm.ppf(0.99, sigma_ln, scale=np.exp(mu_ln)), 1000)
+                y_pdf = stats.lognorm.pdf(x, sigma_ln, scale=np.exp(mu_ln))
+                y_cdf = stats.lognorm.cdf(x, sigma_ln, scale=np.exp(mu_ln))
+            
+            fig = make_subplots(rows=2, cols=1)
+            fig.add_trace(go.Scatter(x=x, y=y_pdf, name='PDF', line=dict(color='blue')), row=1, col=1)
+            fig.add_trace(go.Scatter(x=x, y=y_cdf, name='CDF', line=dict(color='red')), row=2, col=1)
+            
+            fig.add_vline(x=x_value, line_dash="dash", line_color="green", row=1, col=1)
+            fig.add_vline(x=x_value, line_dash="dash", line_color="green", row=2, col=1)
+            
+            fig.update_layout(height=600, showlegend=False)
+            st.plotly_chart(fig, use_container_width=True)
+        except Exception as e:
+            st.error(f"Error generating distribution plot: {e}")
 
-    if uploaded:
-        df = pd.read_csv(uploaded)
-        st.write("### Data Preview", df.head())
-
-        # Select numeric column
-        numeric_cols = df.select_dtypes(include=np.number).columns.tolist()
-        if numeric_cols:
-            column = st.selectbox("Select a numeric column to analyze", numeric_cols)
-            data = df[column].dropna()
-
-            st.write(f"**Mean:** {np.mean(data):.2f}, **Std Dev:** {np.std(data):.2f}")
-
-            # Select distribution
-            dist_choice = st.selectbox("Select a continuous distribution to fit",
-                                       ["Normal", "Exponential", "Gamma", "Uniform"])
-
-            x_value = st.number_input("Enter X value to find probability P(X ≤ x):",
-                                      value=float(np.mean(data)))
-
-            # Fit and calculate
-            if dist_choice == "Normal":
-                mu, sigma = np.mean(data), np.std(data)
-                prob = stats.norm.cdf(x_value, mu, sigma)
-                x = np.linspace(min(data), max(data), 200)
-                y = stats.norm.pdf(x, mu, sigma)
-                st.write(f"**P(X ≤ {x_value}) = {prob:.4f}**")
-
-            elif dist_choice == "Exponential":
-                loc, scale = stats.expon.fit(data)
-                prob = stats.expon.cdf(x_value, loc, scale)
-                x = np.linspace(min(data), max(data), 200)
-                y = stats.expon.pdf(x, loc, scale)
-                st.write(f"**P(X ≤ {x_value}) = {prob:.4f}**")
-
-            elif dist_choice == "Gamma":
-                a, loc, scale = stats.gamma.fit(data)
-                prob = stats.gamma.cdf(x_value, a, loc, scale)
-                x = np.linspace(min(data), max(data), 200)
-                y = stats.gamma.pdf(x, a, loc, scale)
-                st.write(f"**P(X ≤ {x_value}) = {prob:.4f}**")
-
-            elif dist_choice == "Uniform":
-                a, b = min(data), max(data)
-                prob = stats.uniform.cdf(x_value, a, b - a)
-                x = np.linspace(a, b, 200)
-                y = stats.uniform.pdf(x, a, b - a)
-                st.write(f"**P(X ≤ {x_value}) = {prob:.4f}**")
-
-            # Plot
-            fig, ax = plt.subplots()
-            ax.plot(x, y, label=f"{dist_choice} PDF")
-            ax.axvline(x_value, color="red", linestyle="--", label=f"x = {x_value}")
-            ax.legend()
-            st.pyplot(fig)
-
+# Page 4: Distribution Visualization
+elif app_mode == "Distribution Visualization":
+    st.header("📊 Distribution Fitting to Real Commodity Data")
+    
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        selected_country = st.selectbox(
+            "Select Country:",
+            options=commodity_data['Country'].unique(),
+            index=0
+        )
+        
+        selected_commodity = st.selectbox(
+            "Select Commodity:",
+            options=commodity_data['Commodity'].unique(),
+            index=0
+        )
+        
+        filtered_data = commodity_data[
+            (commodity_data['Country'] == selected_country) &
+            (commodity_data['Commodity'] == selected_commodity)
+        ]
+        
+        prices = filtered_data['Price_USD'].values
+        
+        if len(prices) == 0:
+            st.warning("No data available for the selected criteria.")
         else:
-            st.warning("No numeric columns found in uploaded dataset.")
+            st.subheader("Price Distribution")
+            try:
+                fig_hist = go.Figure()
+                fig_hist.add_trace(go.Histogram(
+                    x=prices, 
+                    name='Price Data',
+                    nbinsx=30,
+                    opacity=0.7,
+                    histnorm='probability density'
+                ))
+                fig_hist.update_layout(
+                    title=f"{selected_commodity} Prices in {selected_country}",
+                    xaxis_title="Price (USD)",
+                    yaxis_title="Density"
+                )
+                st.plotly_chart(fig_hist, use_container_width=True)
+            except Exception as e:
+                st.error(f"Error generating histogram: {e}")
+    
+    with col2:
+        if len(prices) > 0:
+            st.subheader("Distribution Fitting")
+            dist_to_fit = st.selectbox(
+                "Select distribution to fit:",
+                ["Normal", "Lognormal", "Exponential", "Gamma"]
+            )
+            
+            try:
+                if dist_to_fit == "Normal":
+                    params = stats.norm.fit(prices)
+                    x_fit = np.linspace(prices.min(), prices.max(), 100)
+                    fitted_pdf = stats.norm.pdf(x_fit, *params)
+                    param_text = f"μ = {params[0]:.3f}, σ = {params[1]:.3f}"
+                    
+                elif dist_to_fit == "Lognormal":
+                    params = stats.lognorm.fit(prices)
+                    x_fit = np.linspace(prices.min(), prices.max(), 100)
+                    fitted_pdf = stats.lognorm.pdf(x_fit, *params)
+                    param_text = f"σ = {params[0]:.3f}, scale = {params[2]:.3f}"
+                    
+                elif dist_to_fit == "Exponential":
+                    params = stats.expon.fit(prices)
+                    x_fit = np.linspace(0, prices.max(), 100)
+                    fitted_pdf = stats.expon.pdf(x_fit, *params)
+                    param_text = f"λ = {1/params[1]:.3f}"
+                    
+                elif dist_to_fit == "Gamma":
+                    params = stats.gamma.fit(prices)
+                    x_fit = np.linspace(0, prices.max(), 100)
+                    fitted_pdf = stats.gamma.pdf(x_fit, *params)
+                    param_text = f"α = {params[0]:.3f}, β = {1/params[2]:.3f}"
+                
+                fig_fit = go.Figure()
+                fig_fit.add_trace(go.Histogram(
+                    x=prices,
+                    name='Actual Data',
+                    nbinsx=30,
+                    opacity=0.5,
+                    histnorm='probability density'
+                ))
+                fig_fit.add_trace(go.Scatter(
+                    x=x_fit,
+                    y=fitted_pdf,
+                    name=f'Fitted {dist_to_fit}',
+                    line=dict(color='red', width=3)
+                ))
+                fig_fit.update_layout(
+                    title=f"Data vs Fitted {dist_to_fit} Distribution",
+                    xaxis_title="Price (USD)",
+                    yaxis_title="Density"
+                )
+                st.plotly_chart(fig_fit, use_container_width=True)
+                
+                st.write(f"**Fitted Parameters:** {param_text}")
+                
+            except Exception as e:
+                st.error(f"Error fitting distribution: {e}")
 
-    else:
-        st.info("Upload a CSV file to begin analysis.")
+# Page 5: Country Comparison
+elif app_mode == "Country Comparison":
+    st.header("🌍 Cross-Country Price Comparison")
+    
+    selected_commodity = st.selectbox(
+        "Commodity for Comparison:",
+        options=commodity_data['Commodity'].unique()
+    )
+    
+    try:
+        comp_data = commodity_data[commodity_data['Commodity'] == selected_commodity]
+        
+        avg_prices = comp_data.groupby('Country')['Price_USD'].mean().sort_values()
+        
+        fig_bar = go.Figure()
+        fig_bar.add_trace(go.Bar(
+            x=avg_prices.index,
+            y=avg_prices.values,
+            marker_color='lightblue'
+        ))
+        fig_bar.update_layout(
+            title=f"Average {selected_commodity} Prices by Country",
+            xaxis_title="Country",
+            yaxis_title="Average Price (USD)",
+            height=400
+        )
+        st.plotly_chart(fig_bar, use_container_width=True)
+        
+    except Exception as e:
+        st.error(f"Error in country comparison: {e}")
 
-# ----------------------------- PAGE 3: DISTRIBUTIONS -----------------------------
-elif page == "📈 Continuous Distributions Visualization":
-    st.title("📈 Continuous Distributions Visualization")
+# Page 6: Standard Distributions
+elif app_mode == "Standard Distributions":
+    st.header("⭐ Standard Distributions Reference")
+    
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        try:
+            st.subheader("Standard Normal Distribution (μ=0, σ=1)")
+            x_norm = np.linspace(-4, 4, 1000)
+            y_norm_pdf = stats.norm.pdf(x_norm)
+            y_norm_cdf = stats.norm.cdf(x_norm)
+            
+            fig_std_norm = make_subplots(rows=2, cols=1)
+            fig_std_norm.add_trace(go.Scatter(x=x_norm, y=y_norm_pdf, name='PDF', line=dict(color='blue')), row=1, col=1)
+            fig_std_norm.add_trace(go.Scatter(x=x_norm, y=y_norm_cdf, name='CDF', line=dict(color='red')), row=2, col=1)
+            fig_std_norm.update_layout(height=500)
+            st.plotly_chart(fig_std_norm, use_container_width=True)
+        except Exception as e:
+            st.error(f"Error generating normal distribution: {e}")
+    
+    with col2:
+        try:
+            st.subheader("Standard Exponential Distribution (λ=1)")
+            x_exp = np.linspace(0, 5, 1000)
+            y_exp_pdf = stats.expon.pdf(x_exp)
+            y_exp_cdf = stats.expon.cdf(x_exp)
+            
+            fig_std_exp = make_subplots(rows=2, cols=1)
+            fig_std_exp.add_trace(go.Scatter(x=x_exp, y=y_exp_pdf, name='PDF', line=dict(color='purple')), row=1, col=1)
+            fig_std_exp.add_trace(go.Scatter(x=x_exp, y=y_exp_cdf, name='CDF', line=dict(color='brown')), row=2, col=1)
+            fig_std_exp.update_layout(height=500)
+            st.plotly_chart(fig_std_exp, use_container_width=True)
+        except Exception as e:
+            st.error(f"Error generating exponential distribution: {e}")
+    
+    # Statistical properties table
+    st.subheader("Statistical Properties")
+    properties_data = {
+        'Distribution': ['Standard Normal', 'Standard Exponential'],
+        'Mean': [0, 1],
+        'Variance': [1, 1],
+        'Support': ['(-∞, ∞)', '[0, ∞)']
+    }
+    st.dataframe(pd.DataFrame(properties_data))
 
-    dist = st.selectbox("Select a distribution", ["Normal", "Exponential", "Gamma", "Uniform"])
-
-    if dist == "Normal":
-        mu = st.slider("Mean (μ)", -10.0, 10.0, 0.0)
-        sigma = st.slider("Standard Deviation (σ)", 0.1, 10.0, 1.0)
-        x = np.linspace(mu - 4 * sigma, mu + 4 * sigma, 200)
-        y = stats.norm.pdf(x, mu, sigma)
-        title = f"Normal(μ={mu}, σ={sigma})"
-
-    elif dist == "Exponential":
-        lam = st.slider("Rate (λ)", 0.1, 5.0, 1.0)
-        x = np.linspace(0, 10, 200)
-        y = stats.expon.pdf(x, scale=1 / lam)
-        title = f"Exponential(λ={lam})"
-
-    elif dist == "Gamma":
-        k = st.slider("Shape (k)", 0.1, 10.0, 2.0)
-        theta = st.slider("Scale (θ)", 0.1, 5.0, 2.0)
-        x = np.linspace(0, 20, 200)
-        y = stats.gamma.pdf(x, k, scale=theta)
-        title = f"Gamma(k={k}, θ={theta})"
-
-    elif dist == "Uniform":
-        a = st.slider("Lower Bound (a)", 0.0, 5.0, 0.0)
-        b = st.slider("Upper Bound (b)", 5.0, 10.0, 5.0)
-        x = np.linspace(a, b, 200)
-        y = stats.uniform.pdf(x, a, b - a)
-        title = f"Uniform(a={a}, b={b})"
-
-    # Plot
-    st.subheader(title)
-    fig, ax = plt.subplots()
-    ax.plot(x, y)
-    ax.set_xlabel("x")
-    ax.set_ylabel("PDF")
-    st.pyplot(fig)
-
-# ----------------------------- PAGE 4: STANDARD DISTRIBUTIONS -----------------------------
-elif page == "📉 Standard Distributions":
-    st.title("📉 Standard Distributions Visualization")
-
-    options = st.radio("Choose a standard distribution",
-                       ["Standard Normal (μ=0, σ=1)",
-                        "Standard Uniform (0,1)",
-                        "Standard Exponential (λ=1)"])
-
-    if "Normal" in options:
-        x = np.linspace(-4, 4, 200)
-        y = stats.norm.pdf(x)
-        title = "Standard Normal Distribution"
-    elif "Uniform" in options:
-        x = np.linspace(0, 1, 200)
-        y = stats.uniform.pdf(x)
-        title = "Standard Uniform Distribution"
-    else:
-        x = np.linspace(0, 10, 200)
-        y = stats.expon.pdf(x)
-        title = "Standard Exponential Distribution"
-
-    # Plot
-    st.subheader(title)
-    fig, ax = plt.subplots()
-    ax.plot(x, y)
-    ax.set_xlabel("x")
-    ax.set_ylabel("PDF")
-    st.pyplot(fig)
+# Footer
+st.sidebar.markdown("---")
+st.sidebar.info("""
+**Data Source:** Synthetic data representing realistic global commodity price trends
+**Period:** 1994-2023
+**Coverage:** 11 countries, 4 commodities
+""")
